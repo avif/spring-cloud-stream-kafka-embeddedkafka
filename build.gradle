@@ -1,0 +1,37 @@
+plugins {
+	id 'org.springframework.boot' version '2.2.0.RELEASE'
+	id 'io.spring.dependency-management' version '1.0.8.RELEASE'
+	id 'java'
+}
+
+group = 'com.example'
+version = '0.0.1-SNAPSHOT'
+sourceCompatibility = '1.8'
+
+repositories {
+	mavenCentral()
+	maven { url 'https://repo.spring.io/milestone' }
+}
+
+ext {
+	set('springCloudVersion', "Hoxton.M3")
+}
+
+dependencies {
+	compile "org.apache.kafka:kafka-streams"
+	compile "org.springframework.boot:spring-boot-starter"
+	compile "org.springframework.cloud:spring-cloud-stream-binder-kafka-streams"
+	compile "org.springframework.cloud:spring-cloud-stream-binder-kafka"
+	testCompile "org.springframework.boot:spring-boot-starter-test"
+	testCompile "org.springframework.kafka:spring-kafka-test"
+}
+
+dependencyManagement {
+	imports {
+		mavenBom "org.springframework.cloud:spring-cloud-dependencies:${springCloudVersion}"
+	}
+}
+
+test {
+	useJUnitPlatform()
+}
