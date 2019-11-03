@@ -21,6 +21,7 @@ import org.springframework.cloud.stream.annotation.EnableBinding;
 import org.springframework.cloud.stream.annotation.Input;
 import org.springframework.cloud.stream.annotation.StreamListener;
 import org.springframework.cloud.stream.messaging.Processor;
+import org.springframework.context.annotation.Bean;
 import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
 import org.springframework.kafka.core.DefaultKafkaProducerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -32,17 +33,14 @@ import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import java.util.Map;
+import java.util.function.Function;
 
 import static org.junit.Assert.assertEquals;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest(
-		properties = {
-				"spring.autoconfigure.exclude=org.springframework.cloud.stream.test.binder.TestSupportBinderAutoConfiguration",
-		},
 		classes = {
-//				DemoApplicationTest.ExampleAppWorking.class
-				DemoApplicationTest.ExampleAppNotWorking.class
+				DemoApplicationTest.ExampleAppNotWorkingFunctional.class
 		}
 )
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
@@ -65,11 +63,6 @@ public class DemoApplicationTest {
 	@BeforeClass
 	public static void setup() {
 		System.setProperty("spring.kafka.bootstrap-servers", embeddedKafka.getBrokersAsString());
-		System.setProperty("spring.cloud.stream.kafka.streams.binder.brokers", embeddedKafka.getBrokersAsString());
-		System.setProperty("spring.cloud.stream.kafka.streams.binder.configuration.brokers", embeddedKafka.getBrokersAsString());
-		System.setProperty("spring.cloud.stream.kafka.binder.zkNodes", embeddedKafka.getZookeeperConnectionString());
-		System.setProperty("server.port","0");
-		System.setProperty("spring.jmx.enabled" , "false");
 
 		Map<String, Object> senderProps = KafkaTestUtils.producerProps(embeddedKafka);
 		senderProps.put("key.serializer", StringSerializer.class);
@@ -109,43 +102,15 @@ public class DemoApplicationTest {
 	}
 
 	@SpringBootApplication
-	@EnableBinding(Processor.class)
-	public static class ExampleAppWorking {
+	public static class ExampleAppNotWorkingFunctional {
 
 		public static void main(String[] args) {
-			SpringApplication.run(ExampleAppWorking.class, args);
+			SpringApplication.run(ExampleAppNotWorkingFunctional.class, args);
 		}
 
-		@StreamListener(Processor.INPUT)
-		@SendTo(Processor.OUTPUT)
-		public String receive(String in) {
-			return in.toUpperCase();
+		@Bean
+		public Function<KStream<String, String>, KStream<String, String>> toUpperCase (){
+			return in -> in.map((key, val) -> KeyValue.pair(key, val.toUpperCase()));
 		}
-	}
-
-	@SpringBootApplication
-	@EnableBinding(MyBinding.class)
-	public static class ExampleAppNotWorking {
-
-		public static void main(String[] args) {
-			SpringApplication.run(ExampleAppNotWorking.class, args);
-		}
-
-		@StreamListener
-		@SendTo(MyBinding.OUTPUT)
-		public KStream<String, String> toUpperCase (@Input(MyBinding.INPUT) KStream<String, String> in){
-			return in.map((key, val) -> KeyValue.pair(key, val.toUpperCase()));
-		}
-	}
-
-	public interface MyBinding {
-		String INPUT = "input";
-		String OUTPUT = "output";
-
-		@Input(INPUT)
-		KStream<String, String> messagesIn();
-
-		@Input(OUTPUT)
-		KStream<String, String> messagesOut();
 	}
 }
